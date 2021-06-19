@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head><meta charset="utf-8">
+    	<meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>NYC 311 Call - D3 Visualization</title>
+        <script type="text/javascript" src="https://d3js.org/d3.v5.min.js"></script>
+        <script src="https://unpkg.com/d3-tile@0.0"></script>
+        <script type="text/javascript" src="dataSource.js"></script>
+        <link rel="stylesheet" type="text/css" href="NYC_311_Call_Visualization.CSS">
+        <link rel="icon" type="image/png" sizes="32x32" href="data/favicon-32x32.png">
+    </head>
+    <body class = "page">
+		<!-- <div class= "header">
+    	<h1>&nbsp;</h1>
+        <h1><center>New York 311 Call Visualization (Statistics)</center></h1>
+        <div class="topnav">
+        	<a href="/NYC_311_Map.html">New York Map</a>
+ 			 <a class="active" href="#current">HOME</a>
+ 			 
+		</div>
+		</div> -->
+        <div class="header">
+            <div class="headercard">
+              <span>
+             <svg height="140" width="300">
+
+                <defs>
+                  <pattern id="image-left" x="0%" y="0%" height="100%" width="100%" viewBox="0 0 100 100">
+                    <image x="0%" y="0%" width="100" height="50" xlink:href="311_3 - Copy.jpg"></image>
+                  </pattern>
+                </defs>
+                  
+                <rect id="sd-left" class="medium" x="30" y="20" width="100" height="110" fill="url(#image-left)"  />
+                  
+              
+              </svg> 
+              </span>
+             <span>
+               <h1 id="name" align="center">New York 311 Call Visualization </h1>
+               <h3 align="center">(Statistics)</h3>
+
+             </span>
+              <span>            
+              
+            </span>
+          
+             </div>
+             </div>
+             <div class="topnav">
+                <a href="/NYC_311_Map.html">New York Map</a>
+                  <a class="active" href="#current">HOME</a>
+                  
+            </div>
+
+		<div class="dataDescription">
+		<h3>Data Description:</h3>
+		<p>New York 311 Call dataset reflects 311 Call incidents from City of New York for the lasst 1 month from 15th May and 15th June. The dataset is hosted by City of New York on their data portal <a href="https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-Present/erm2-nwe9/data">NYC Open Data</a>
+			The dataset contains features such as Date of incident, Responsible Agency, Status of Complaint, City  along with the longitude and latitude location of the incident.
+			For the purpose of this visualization, over 250K obervations are used to display interesting facts from the collected data. </p>
+        <p>This visualization can be used to get 311 Call information based on
+        
+        <ol>
+            <li>Week Day</li>
+            <li>Area</li>
+            <li>Mode Of Complaint</li>
+            <li>Status Of Complaint</li>
+            <li>Responsible Agency for Action</li>
+        </ol>
+        
+        In addition, refer to New York 311 Call map on next page. (This map is created based on the geocode information from the
+        dataset can be zoomed in and zoom out).
+        
+        Furthermore, all of these charts are filterable by area name, so that areawise information can be used to answer common
+        questions such as:</p>
+        <ol type="a">
+            <li>Which day of the month had maximum complaints?</li>
+            <li>What is the percentage distribution of complains from different mode?</li>
+            <li>What is the status of complains?</li>
+            <li>How much complains are going to different agency?</li>
+        </ol>
+        
+        <p>
+            Initially these visualizations displays the 311 Call across all the areas in City of New York and few insights are
+            as follows: </p>
+        <p> In the Month June 2021,
+        <ul>
+            <li>Maximum complains are from Brooklyn</li>
+            <li>Weekends records the highest complaints</li>
+            <li>Mostly complains are made by online followed by Phone</li>
+            <li>Most of the complaints were handled by NYPD</li>
+        </ul>
+        </p>
+        
+        <p><I>* Please click New York Map (Top Right) in navigation to view a Map of 311 Calls
+                <br>* Currently, this map doesn't support the area wise filter condition</I></p>
+        <p><U>For better user experience, please use Firefox or Chrome Browser</U></p>
+		</div>
+		<div id="drop" class="drop" align="center">Filter (By City): </div>
+		<div class = "blankrow">&nbsp;</div>
+		<div class = "blankrow">&nbsp;</div>
+		<div class = "blankrow">&nbsp;</div>
+        <div class = "row">
+        	<div class="day_lollipop" id= "day_lollipop">By Day</div>
+            <div id="area_barchart" class="area_barchart">By Area<br>
+            </div>
+        </div>
+        <div class = "blankrow">&nbsp;</div>
+        <div class = "row">
+            <div class="mode_piechart" id= "mode_piechart">By Complaint Mode
+			<br><br></div>
+            <div class="status_piechart" id ="status_piechart" >By Status
+			<br><br></div>
+        </div>
+       <br>
+	   <br>
+        <div class = "row">
+            
+            <div class="agency_barchart" id ="agency_barchart" >&nbsp;
+			<br>Statistics by Agency Type</div>
+        </div>
+
+        <script type="text/javascript">
+
+            var padding = 70;
+
+
+            //SVG for bar chart
+            var svg_barchart = d3.select("div#area_barchart")
+                                .append("svg")
+                                .attr("id","barchart")
+                                .attr("width", document.getElementById("area_barchart").clientWidth)
+                                .attr("height", document.getElementById("area_barchart").clientHeight)
+                                .classed("svg-content", true);
+
+            //SVG for mode of complaint Pie Chart
+            var modePiechart = d3.select("div#mode_piechart")
+                        .append("center")
+                        .append("svg")
+                        .attr("width", document.getElementById("mode_piechart").clientWidth)
+                        .attr("height", document.getElementById("mode_piechart").clientHeight)
+                        .attr("padding",10)
+                        .classed("svg-content", true);
+
+
+            var statusPiechart = d3.select("div#status_piechart")
+                        .append("svg")
+                        .attr("width", document.getElementById("status_piechart").clientWidth)
+                        .attr("height", document.getElementById("status_piechart").clientHeight)
+                        .append("g")
+                        .classed("svg-content", true);
+     
+
+
+            d3.json("data/NYC_311_Service_Requests_Cleaned_latest.geojson").then(function (data) {
+                    //To get the Pie chart for Mode of complaints like by Online, Phone etc.
+                    function drawModePieChart(areaname = null) {
+
+                        var modeDataset = computeAndGetDataset(data.features, "Open Data Channel Type", areaname);
+
+                        var complainCount = modeDataset.map(obj => {
+                            return obj.count;
+                        });
+
+                        var outerRadius = document.getElementById("mode_piechart").clientWidth / 3;
+
+                        //Pie chart
+                        var innerRadius = 0
+
+                        //Get the arc
+                        var arc = d3.arc()
+                            .innerRadius(innerRadius)
+                            .outerRadius(outerRadius);
+
+                        var pie = d3.pie();
+
+                        //Easy colors accessible via a 10-step ordinal scale
+                        var color = d3.scaleOrdinal()
+                            .domain(modeDataset.map(d => d.name))
+                            .range(["#4E79A7", "#E15759", "#EDC948", "#a3d2fd"]);
+
+                        //Create SVG element
+
+
+                        //Set up groups
+                        var arcs = modePiechart.selectAll("g.arc")
+                            .data(pie(complainCount))
+                            .enter()
+                            .append("g")
+                            .attr("class", "arc")
+                            .attr("transform", "translate(" + outerRadius + "," + outerRadius + ")")
+                            .attr("stroke", "black")
+                            .style("stroke-width", "1px")
+                            ;
+
+                        //Draw arc paths
+                        arcs.append("path")
+                            .attr("fill", function (d, idx) {
+                                return color(idx);
+                            })
+                            .attr("d", arc)
+                            //show label on mouse hover
+                            .on("mouseover", function (d, i) {
+
+                                arcs.append("text")
+                                    .attr("dy", "5em")
+                                    .attr("dx", "5em")
+                                    .style("text-anchor", "left")
+                                    .style("font-size", 15)
+                                    .attr("class", "label")
+                                    .style("fill", function (d, i) { return "black"; })
+                                    .text(modeDataset[i].name + ": " + modeDataset[i].count
+                                    );
+
+                            })
+                            .on("mouseout", function (d) {
+                                arcs.select(".label").remove();
+                            });
+                        //Label 
+                        arcs.append("text")
+                            .attr("transform", function (d) {
+                                return "translate(" + arc.centroid(d) + ")";
+                            })
+                            .attr("text-anchor", "middle")
+                            .text(function (d, idx) {
+                                // console.log(modeDataset[idx].name);
+                                if (modeDataset[idx].name === "PHONE") {
+                                    return "P";
+                                }
+                                else if (modeDataset[idx].name === "MOBILE") {
+                                    return "M";
+                                }
+                                else if (modeDataset[idx].name === "ONLINE") {
+                                    return "O";
+                                }
+                                else {
+                                    return "X";
+                                };
+
+                                return modeDataset[idx].name;
+
+                            });
+                   
+
+                    };
+
+             // Get the donut Pie chart for Status
+             function drawStatusPieChart(areaname=null){
+
+                                        var statusDataset = computeAndGetDataset(data.features, "Status",areaname);
+
+                                        	
+                                        var statusCount = statusDataset.map(obj => {
+                                            return obj.count;
+                                        });
+
+                                        var outerRadius = document.getElementById("status_piechart").clientWidth / 3;
+
+                                        //Inner radius for donut Pie chart
+                                        var innerRadius = document.getElementById("status_piechart").clientWidth / 5;
+                                       
+                                        
+                                        var arc = d3.arc()
+                                                    .innerRadius(innerRadius)
+                                                    .outerRadius(outerRadius);
+                                        
+                                        var pie = d3.pie();
+                                        
+                                        //Easy colors accessible for each status 
+                                        var color = d3.scaleOrdinal()
+                                                    .domain(statusDataset.map(d => d.name))
+                                                    .range(d3.quantize(t => d3.interpolateSpectral(t * 1.2 + 0.3), statusDataset.length).reverse());
+
+                                        var color = d3.scaleOrdinal()
+															.domain(statusDataset.map(d => d.name))
+															.range(["#4E79A7", "#F28E2B", "#E15759", "#76B7B2", "#59A14F", "#EDC948", "#FF9DA7"]);
+
+                                        //var color = d3.scaleOrdinal(d3.schemeCategory20);
+
+                                        //Set up groups
+                                        var arcs = statusPiechart.selectAll("g.arc")
+                                                      .data(pie(statusCount))
+                                                      .enter()
+                                                      .append("g")
+                                                      .attr("class", "arc")
+                                                      .attr("transform", "translate(" + outerRadius + "," + outerRadius + ")")
+                                                      .attr("stroke", "black")
+                                                      .style("stroke-width", "1px");
+                                        
+                                        //Draw arc paths
+                                        arcs.append("path")
+                                            .attr("fill", function(d, i) {
+                                                return color(i);
+                                            })
+                                            .attr("d", arc)
+                                            //show the name and count in middle of donut pire chart
+											.on("mouseover", function(d, i) {
+											  arcs.append("text")
+												.attr("dy", "0.5em")
+												.style("text-anchor", "middle")
+												.style("font-size", 20)
+												.attr("class","label")
+												.style("fill", function(d,i){return "black";})
+												.text(statusDataset[i].name + ": "  + statusDataset[i].count 
+												)
+												;
+											  
+										  })
+										  .on("mouseout", function(d) {
+											arcs.select(".label").remove();
+										  });;
+                                        
+                                        //Labels
+                                        arcs.append("text")
+                                            .attr("transform", function(d) {
+                                                return "translate(" + arc.centroid(d) + ")";
+                                            })
+                                            .attr("text-anchor", "middle")
+                                            .text(function(d, idx) {
+                                               // console.log(genderDataset[idx].name);
+                                               if (statusDataset[idx].name === "Closed"){
+                                                    return "C";   
+                                                }else if (statusDataset[idx].name === "Open") {
+                                                    return "O";
+                                                }else if (statusDataset[idx].name === "In Progress"){
+                                                    return "I";   
+                                                // }else if (statusDataset[idx].name === "Assigned") {
+                                                //     return "A";
+                                                // // }else if (statusDataset[idx].name === "Started"){
+                                                //     return "S";   
+                                                }else if (statusDataset[idx].name === "Pending") {
+                                                    return "P";                                              
+                                                }else{
+                                                    return "X";
+                                                };
+                                                
+                                            });
+
+                         };
+
+           
+                 //Side bar chart for City 
+                function drawBarchart() {
+
+                    var areaDataset = computeAndGetDataset(data.features, "City");
+                    //short the City name to show in dropdown
+                    areaDataset.sort(function (a, b) {
+                        return a.name < b.name;
+                    });
+                    var xScale = d3.scaleLinear()
+                        .domain([0, d3.max(areaDataset, function (d) { return d.count })])
+                        .range([padding, document.getElementById("area_barchart").clientWidth - padding]);
+
+                    var yScale = d3.scaleBand()
+                        .domain(areaDataset.map(function (d) { return d.name }))
+                        .range([document.getElementById("area_barchart").clientHeight - padding, padding]);
+
+
+                    /* Create X-Axis on bottom and Y-Axis to left*/
+                    var xAxis = d3.axisBottom(xScale);
+                    var yAxis = d3.axisLeft(yScale);
+
+
+                    const setWidth = (inputValue) => {
+                        return xScale(inputValue.count) - padding;
+                    };
+
+                    const setXAttribute = (inputValue) => {
+                        return xScale(inputValue.count);
+                    };
+
+
+                    const setYAttribute = (inputValue, index) => {
+                        return yScale(inputValue.name);
+                    }
+
+                    /* function to calculate X Attribute for text label */
+                    const setYTextAttribute = (inputValue) => {
+                        return setYAttribute(inputValue) - 3;
+                    };
+
+                    /* function to return text display value */
+                    const textDisplay = (inputValue) => {
+                        return inputValue;
+                    };
+
+
+                    svg_barchart.selectAll("rect")
+                        .data(areaDataset)
+                        .enter()
+                        .append("rect")
+                        .attr("width", setWidth)
+                        .attr("height", 10)
+                        .attr("x", padding)
+                        .attr("y", setYAttribute)
+                        .attr("fill", "steelblue")
+                        .attr("id", function (d) {
+                            return d.name.split(' ').join('');
+                        })
+                        .append("title")
+                        .text(function (d) {
+                            return d.name + ": " + d.count;
+                        });
+
+                    svg_barchart.append("g")
+                        .attr("transform", "translate(0," + (document.getElementById("area_barchart").clientHeight - padding) + ")")
+                        .call(xAxis);
+                    svg_barchart.append("g")
+                        .attr("transform", "translate(" + padding + "," + 0 + ")")
+                        .call(yAxis);
+                    //On change event of city selection 
+                    var selector = d3.select("#drop")
+                        .append("select")
+                        .attr("id", "dropdown")
+                        .on("change", handleAreaChange);
+
+
+                    let option_dataset = [{ name: "-Select-", count: 1 }].concat(areaDataset);
+
+
+                    selector.selectAll("option")
+                        .data(option_dataset)
+                        .enter()
+                        .append("option")
+                        .attr("value", function (d) {
+                            return d.name;
+                        })
+                        .text(function (d) {
+                            return d.name;
+                        });
+
+                };
+            
+            //Lolliopop chart for Complaints by week day
+			function drawLollipopChart(areaname = null) {
+
+                let complaintByDay = computeAndGetDataset(data.features, "Day Name", areaname);
+                const sorter = {
+                    // "sunday": 0, // << if sunday is first day of week
+                    "monday": 1,
+                    "tuesday": 2,
+                    "wednesday": 3,
+                    "thursday": 4,
+                    "friday": 5,
+                    "saturday": 6,
+                    "sunday": 7
+                }
+
+                complaintByDay.sort(function (a, b) {
+                    let day1 = a.name.toLowerCase();
+                    let day2 = b.name.toLowerCase();
+                    return sorter[day1] - sorter[day2];
+                });
+                    
+
+                    let margin = { top: 40, right: 30, bottom: 70, left: 100 };
+                    let width = 460 - margin.left - margin.right;
+                    let height = 500 - margin.top - margin.bottom;
+
+                    // append the svg object to the body of the page
+                    let monthLollipop = d3.select("div#day_lollipop")
+                        .append("svg")
+                        .attr("id", "Lollipop")
+                        .attr("width", width + margin.left + margin.right)
+                        .attr("height", height + margin.top + margin.bottom)
+                        .append("g")
+                        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+                    // Add X axis
+                    var x = d3.scaleBand()
+                        .range([0, width])
+                        .domain(complaintByDay.map(function (d) { return d.name; }))
+                        .padding(1);
+
+
+                    monthLollipop.append("g")
+                        .attr("transform", "translate(0," + height + ")")
+                        .call(d3.axisBottom(x))
+                        .selectAll("text")
+                        .attr("transform", "translate(-10,0)rotate(-45)")
+                        .style("text-anchor", "end");
+
+                    // Y axis
+                    var y = d3.scaleLinear()
+                        .domain([0, d3.max(complaintByDay, function (d) { return d.count; })])
+                        .range([height, 0])
+
+                    monthLollipop.append("g")
+                        .call(d3.axisLeft(y))
+
+                    // Lines
+                    monthLollipop.selectAll("myline")
+                        .data(complaintByDay)
+                        .enter()
+                        .append("line")
+                        .attr("x1", function (d) { return x(d.name); })
+                        .attr("x2", function (d) { return x(d.name); })
+                        .attr("y1", height)
+                        .attr("y2", y(0))
+                        .attr("stroke", "grey")
+
+                    // Circles -> start at X=0
+                    monthLollipop.selectAll("mycircle")
+                        .data(complaintByDay)
+                        .enter()
+                        .append("circle")
+                        .attr("cx", function (d) { return x(d.name); })
+                        .attr("cy", y(0))
+                        .attr("r", "6")
+                        .style("fill", "steelblue")
+                        .attr("stroke", "black")
+                        .append("title")
+                        .text(function (d) {
+                            return d.name + ": " + d.count;
+                        });
+
+                    // Change the X coordinates of line and circle
+                    monthLollipop.selectAll("circle")
+                        .transition()
+                        .duration(1000)
+                        .attr("cy", function (d) { return y(d.count); });
+
+                    monthLollipop.selectAll("line")
+                        .transition()
+                        .duration(1000)
+                        .attr("y1", function (d) { return y(d.count); });
+                };
+
+            function drawBarAgechart(areaname=null){
+            			let age_padding = 100;
+
+			            let agedata = computeAndGetDataset(data.features, "Agency",areaname);
+
+			            agedata.sort(function (a,b) {
+			            	return a.name < b.name;
+			            });
+
+
+			            var yScale = d3.scaleLinear()
+			                            //.domain([0, maxAreaCount])
+			                            .domain([0, d3.max(agedata, function(d) { return d.count })])
+			                            .range([document.getElementById("agency_barchart").clientHeight - age_padding, age_padding]);
+
+			            var xScale = d3.scaleBand()
+			                            .domain(agedata.map(function (d) { return d.name }))
+			                            .range([document.getElementById("agency_barchart").clientWidth - age_padding, age_padding]);
+
+
+			                /* Create X-Axis on bottom and Y-Axis to left*/
+			            var xAxis = d3.axisBottom(xScale);
+			            var yAxis = d3.axisLeft(yScale);
+
+
+			            
+			            const setHeight = (inputValue) => {
+			                return document.getElementById("agency_barchart").clientHeight - yScale(inputValue.count) - age_padding;
+			            };
+
+			            const setYAttribute = (inputValue) => {
+			                return yScale(inputValue.count);
+			            };
+
+			            
+			            const setXAttribute = (inputValue, index) => {
+			                return  xScale(inputValue.name);
+			            }
+			            
+			            /* function to calculate X Attribute for text label */
+			            const setXTextAttribute = (inputValue) => {
+			                return setXAttribute(inputValue) - 3;
+			            };
+
+			            /* function to return text display value */
+			            const textDisplay = (inputValue) => {
+			                return inputValue;
+			            };
+
+			            //SVG for Age Pie Chart
+			            var agency_barchart = d3.select("div#agency_barchart")
+			                        .append("svg")
+			                        .attr("width", document.getElementById("agency_barchart").clientWidth)
+			                        .attr("height", document.getElementById("agency_barchart").clientHeight)
+			                        .attr("id","ageChart")
+			                        .append("g")
+			                        .classed("svg-content", true);
+                        
+
+
+			            agency_barchart.selectAll("rect")
+			                        .data(agedata)
+			                        .enter()
+			                        .append("rect")
+			                        .attr("height", setHeight)
+			                        .attr("width", 40)
+			                        .attr("y", setYAttribute)
+			                        .attr("x", setXAttribute)
+			                        .attr("fill", "steelblue")
+			                        .attr("id","ageBarChart")
+			                        .append("title")
+			        				.text(function (d) {
+			                        	return d.name + ": " + d.count;
+			                        });
+
+
+			                 
+			            
+
+			            agency_barchart.append("g")
+			                        .attr("transform", "translate(0," + (document.getElementById("agency_barchart").clientHeight - age_padding) + ")")
+			                        //.attr("transform", "translate(0," + 400 + ")")
+			                        .call(xAxis);
+
+
+			            agency_barchart.append("g")
+			                        .attr("transform", "translate(" + age_padding + "," + 0 + ")")
+			                        .call(yAxis); 
+			            
+            };
+
+
+            function updateGenderPieChart(areaSelected){
+                            modePiechart.selectAll("g.arc")
+                                        .remove();
+                            drawModePieChart(areaSelected);
+
+            };
+
+            function updateStatusPieChart(areaSelected){
+                            statusPiechart.selectAll("g.arc")
+                                        .remove();
+                            drawStatusPieChart(areaSelected);
+
+            };
+
+            function updateAgeChart(areaSelected){
+                            d3.selectAll("#ageChart")
+                                         .remove();
+
+                            drawBarAgechart(areaSelected);
+
+            };
+
+            function updateMonthChart(areaSelected){
+                            d3.selectAll("#Lollipop")
+                                        .remove();
+                            console.log(areaSelected);
+                            drawLollipopChart(areaSelected);
+
+            };
+
+            function handleAreaChange(d){selection = document.getElementById("dropdown");
+
+
+                                            let selectedValue = selection.value;
+
+
+                                            svg_barchart.selectAll("rect")
+                                                        .attr("fill", "steelblue");
+
+
+                                            if (selectedValue === "-Select-"){
+                                                selectedValue = null;
+                                            }
+                                            else{
+
+                                            svg_barchart.select("rect#" + selectedValue.split(' ').join(''))
+                                                        .transition()
+                                                        .duration(1000)
+                                                        .attr("fill", "red");
+                                            }
+
+                                            updateGenderPieChart(selectedValue);
+                                            updateStatusPieChart(selectedValue);
+                                            updateMonthChart(selectedValue);
+                                            updateAgeChart(selectedValue);
+
+                                         };
+			drawBarchart();
+            
+
+            drawModePieChart();
+
+            drawStatusPieChart();
+
+            drawBarAgechart();
+
+
+            drawLollipopChart();
+
+
+            });
+
+
+
+        </script>
+    </body>
+</html>
