@@ -46,7 +46,7 @@
 
     </div>
     <div class="topnav">
-      <a href="/">Back to Homepage</a>
+      <a href="/NYC_311_CallRecord_Visualization/">Back to Homepage</a>
     </div>
 
   </div>
@@ -143,7 +143,7 @@
         geometry: { type: "Point", coordinates: [+d.Longitude, +d.Latitude] }
       };
     }
-    
+
     function stringify(scale, translate) {
       var k = scale / 256, r = scale % 1 ? Number : Math.round;
       return "translate(" + r(translate[0] * scale) + "," + r(translate[1] * scale) + ") scale(" + k + ")";
