@@ -47,13 +47,14 @@
 
     <div class="dataDescription">
         <h3>Data Description:</h3>
-        <p>New York 311 Call dataset reflects 311 Call incidents from City of New York for the lasst 1 month from 15th
-            May and 15th June. The dataset is hosted by City of New York on their data portal <a
+        <p>New York 311 Call dataset reflects 311 Call incidents from City of New York for the last 1 week from 08th
+            June to
+            15th June. The dataset is hosted by City of New York on their data portal <a
                 href="https://data.cityofnewyork.us/Social-Services/311-Service-Requests-from-2010-to-Present/erm2-nwe9/data">NYC
                 Open Data</a>
             The dataset contains features such as Date of incident, Responsible Agency, Status of Complaint, City along
             with the longitude and latitude location of the incident.
-            For the purpose of this visualization, over 250K obervations are used to display interesting facts from the
+            For the purpose of this visualization, over 50K obervations are used to display interesting facts from the
             collected data. </p>
         <p>This visualization can be used to get 311 Call information based on
 
@@ -92,16 +93,13 @@
         </ul>
         </p>
 
-        <p><I>* Please click New York Map (Top Right) in navigation to view a Map of 311 Calls
-                <br>* Currently, this map doesn't support the area wise filter condition</I></p>
-        <p><U>For better user experience, please use Firefox or Chrome Browser</U></p>
+        <p><b>* Please click on New York Map (Top Right) to view a Map of 311 Calls visualization</b></p>
+       
     </div>
 
     <div class="blankrow">
         <div id="drop" class="drop" align="center">Filter (By City): </div>
     </div>
-    <!-- <div class = "blankrow">&nbsp;</div>
-		<div class = "blankrow">&nbsp;</div> -->
     <div class="row">
         <div class="day_lollipop" id="day_lollipop">By Day</div>
         <div id="area_barchart" class="area_barchart">By City<br>
@@ -120,12 +118,16 @@
     <br>
     <div class="blankrow">&nbsp;</div>
     <div class="row">
-
+        <div class="force_simulation" id="force_simulation">
+            <br> Force Simulation of Top 10 City<br>
+        </div>
         <div class="agency_barchart" id="agency_barchart">&nbsp;
             <br>Statistics by Agency Type (Top 10)
         </div>
     </div>
-    <div class="blankrow">&nbsp;</div>
+    <div class="blankrow">
+        <p><U>For better user experience, please use Firefox or Chrome Browser</U></p>
+    </div>
     <script type="text/javascript">
 
         var padding = 70;
@@ -148,7 +150,7 @@
             .attr("padding", 15)
             .classed("svg-content", true);
 
-
+        //SVG for Status Pie Chart
         var statusPiechart = d3.select("div#status_piechart")
             .append("center")
             .append("svg")
@@ -158,8 +160,17 @@
             .attr("padding", 15)
             .classed("svg-content", true);
 
+        //SVG code for Force Layout
+        var forceSimulationLayout = d3.select("div#force_simulation")
+            .append("center")
+            .append("svg")
+            .attr("width", document.getElementById("force_simulation").clientWidth)
+            .attr("height", document.getElementById("force_simulation").clientHeight)
+            .append("g")
+            .attr("padding", 15)
+            .classed("svg-content", true);
 
-
+        // Read data from geojson clean dataset file
         d3.json("data/NYC_311_Service_Requests_Cleaned_latest.geojson").then(function (data) {
             //To get the Pie chart for Mode of complaints like by Online, Phone etc.
             function drawModePieChart(areaname = null) {
@@ -329,7 +340,7 @@
                             return "O";
                         } else if (statusDataset[idx].name === "In Progress") {
                             return "I";
- 
+
                         } else if (statusDataset[idx].name === "Pending") {
                             return "P";
                         } else {
@@ -386,7 +397,7 @@
                     return inputValue;
                 };
 
-
+                //add svg rec for bars
                 svg_barchart.selectAll("rect")
                     .data(areaDataset)
                     .enter()
@@ -526,9 +537,69 @@
                     .duration(1000)
                     .attr("y1", function (d) { return y(d.count); });
             };
+
+            //To draw the Force Simulation layout
+            function drawForceSimulationLayout(areaname = null) {
+                d3.json("data/NYC311_service_force_layout.json").then(function (data) {
+
+                    //Width and height
+                    var w = document.getElementById("force_simulation").clientWidth;
+                    var h = document.getElementById("force_simulation").clientHeight;
+
+
+
+                    //Initialize a simple force layout, using the nodes and edges in dataset
+                    var force = d3.forceSimulation(data.nodes)
+                        .force("charge", d3.forceManyBody())
+                        .force("link", d3.forceLink(data.links).distance(w / 2))
+                        .force("center", d3.forceCenter().x(w / 2).y(h / 2));
+
+                    var colors = d3.scaleOrdinal(d3.schemeCategory10);
+
+                    //Create edges (links) as lines
+                    var links = forceSimulationLayout.selectAll("line")
+                        .data(data.links)
+                        .enter()
+                        .append("line")
+                        .style("stroke", "#ccc")
+                        .attr("id", "forceSimulationLayout")
+                        .style("stroke-width", 2);
+
+                    //Create nodes as circles
+                    var nodes = forceSimulationLayout.selectAll("circle")
+                        .data(data.nodes)
+                        .enter()
+                        .append("circle")
+                        .attr("r", 12)
+                        .attr("id", "forceSimulationLayout")
+                        .style("fill", function (d, i) {
+                            return colors(i);
+                        })
+
+                    //Add a simple tooltip
+                    nodes.append("title")
+                        .text(function (d) {
+                            return d.City + ":" + d.Agency + ":" + d.Status;
+                        });
+
+                    //Every time the simulation "ticks", this will be called
+                    force.on("tick", function () {
+
+                        links.attr("x1", function (d) { return d.source.x; })
+                            .attr("y1", function (d) { return d.source.y; })
+
+                            .attr("x2", function (d) { return d.target.x; })
+                            .attr("y2", function (d) { return d.target.y; });
+
+                        nodes.attr("cx", function (d) { return d.x; })
+                            .attr("cy", function (d) { return d.y; });
+
+                    })
+                })
+            };
             //To draw the bar chart for the complaint received by each Agency
             function drawAgencyBarchart(areaname = null) {
-                let agency_padding = 120;
+                let agency_padding = 70;
 
                 let agencydata = computeAndGetDataset(data.features, "Agency", areaname);
                 //top 10 agency count here
@@ -540,7 +611,7 @@
                 });
                 var xScale = d3.scaleBand()
                     .domain(agencydata.map(function (d) { return d.name }))
-                    .range([document.getElementById("agency_barchart").clientWidth - agency_padding, agency_padding]).paddingInner(0.5);
+                    .range([document.getElementById("agency_barchart").clientWidth - agency_padding, agency_padding]).paddingInner(0.3);
 
 
                 var yScale = d3.scaleLinear()
@@ -591,7 +662,7 @@
                     .enter()
                     .append("rect")
                     .attr("height", setHeight)
-                    .attr("width", 30)
+                    .attr("width", 20)
                     .attr("y", setYAttribute)
                     .attr("x", setXAttribute)
                     .attr("fill", "#1518cf")
@@ -647,11 +718,16 @@
                 drawAgencyBarchart(areaSelected);
 
             };
+            function updateForceSimulationLayout(areaSelected) {
+                d3.selectAll("#forceSimulationLayout")
+                    .remove();
 
+                drawForceSimulationLayout(areaSelected);
+
+            };
             function updateDayLollypopChart(areaSelected) {
                 d3.selectAll("#Lollipop")
                     .remove();
-                console.log(areaSelected);
                 drawDayLollipopChart(areaSelected);
 
             };
@@ -680,7 +756,9 @@
                 updateDayLollypopChart(selectedValue);
                 updateModePieChart(selectedValue);
                 updateStatusPieChart(selectedValue);
+                updateForceSimulationLayout(selectedValue);
                 updateAgencyBarChart(selectedValue);
+
 
             };
             // Draw layouts on page load
@@ -688,6 +766,7 @@
             drawCityBarchart();
             drawModePieChart();
             drawStatusPieChart();
+            drawForceSimulationLayout();
             drawAgencyBarchart();
 
         });
